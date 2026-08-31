@@ -7,9 +7,9 @@
 #
 # Провайдер: OpenCode Zen (https://opencode.ai/zen). Требуется секрет
 # OPENCODE_API_KEY (Settings → Secrets and variables → Actions).
-# Модель — бесплатная (free-период): deepseek-v4-flash-free. Другие free:
-# mimo-v2.5-free, ling-3.0-flash-fin-free, nemotron-3-ultra-free,
-# nemotron-3.5-lightning-free, laguna-s-2.1-free, big-pickle.
+# Модель — бесплатная (free): ling-3.0-flash-fin-free (подтверждена агентом
+# как доступная; deepseek-v4-flash-free в реестре моделей отсутствует).
+# Другие free-слаги можно проверить списком: https://opencode.ai/zen/v1/models
 #
 # Ответы публикуются от github-actions[bot] через стандартный GITHUB_TOKEN
 # (use_github_token: true — документированный режим без токена установки
@@ -45,6 +45,6 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/deepseek-v4-flash-free
+          model: opencode/ling-3.0-flash-fin-free
           use_github_token: true
           # share: true
