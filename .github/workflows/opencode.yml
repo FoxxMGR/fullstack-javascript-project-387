@@ -6,8 +6,11 @@
 # комментария — условие в if ниже). Агент читает тред issue и отвечает
 # комментарием; по команде вида "/opencode fix this" создаёт ветку и PR.
 #
-# Требуется секрет ANTHROPIC_API_KEY (Settings → Secrets and variables →
-# Actions). Если используете другого провайдера — замените env и model.
+# Провайдер: OpenCode Zen (https://opencode.ai/zen). Требуется секрет
+# OPENCODE_API_KEY (Settings → Secrets and variables → Actions).
+# Модель — бесплатная (free-период): deepseek-v4-flash-free. Другие free:
+# mimo-v2.5-free, ling-3.0-flash-fin-free, nemotron-3-ultra-free,
+# nemotron-3.5-lightning-free, laguna-s-2.1-free, big-pickle.
 
 name: opencode
 
@@ -34,7 +37,7 @@ jobs:
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: anthropic/claude-sonnet-4-20250514
+          model: opencode/deepseek-v4-flash-free
           # share: true
