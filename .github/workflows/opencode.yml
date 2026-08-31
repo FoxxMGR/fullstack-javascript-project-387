@@ -1,0 +1,40 @@
+# Вызов агента OpenCode из комментариев к issue и PR.
+# Установка App: https://github.com/apps/opencode-agent
+# Документация: https://opencode.ai/docs/github/
+#
+# Триггер: новый комментарий, содержащий /oc или /opencode (в любой части
+# комментария — условие в if ниже). Агент читает тред issue и отвечает
+# комментарием; по команде вида "/opencode fix this" создаёт ветку и PR.
+#
+# Требуется секрет ANTHROPIC_API_KEY (Settings → Secrets and variables →
+# Actions). Если используете другого провайдера — замените env и model.
+
+name: opencode
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  opencode:
+    if: |
+      contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          model: anthropic/claude-sonnet-4-20250514
+          # share: true
