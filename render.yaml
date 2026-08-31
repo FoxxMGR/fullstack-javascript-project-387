@@ -1,0 +1,10 @@
+# Render Blueprint: https://render.com/docs/blueprint_spec
+# Деплой всего приложения одним Docker-сервисом: бэкенд раздаёт и API,
+# и собранный фронтенд, слушает PORT, который Render подставляет автоматически.
+services:
+  - type: web
+    name: calendar-booking
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true

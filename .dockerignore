@@ -1,0 +1,13 @@
+# Сборка образа не требует ничего из перечисленного: фронтенд собирается
+# внутри образа из исходников, сервер копируется из server/src.
+**/node_modules
+**/dist
+**/test-results
+**/playwright-report
+.git
+.github
+e2e
+*.md
+.dockerignore
+Dockerfile
+render.yaml

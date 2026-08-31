@@ -1,0 +1,74 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+
+# Автоматический релиз через release-it работает на стандартном GITHUB_TOKEN:
+# пуш коммита/тега и создание GitHub Release требуют только contents: write.
+# Pull request'ы не создаются, поэтому настройка репозитория «Allow GitHub
+# Actions to create and approve pull requests» не требуется.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Проверка Hexlet вешает на main свои теги вида vBuild<номер>. release-it
+      # берёт «последнюю версию» из git describe и такие теги не распознаёт.
+      # Удаляем их локально в раннере (на origin они остаются): учитываются
+      # только релизные теги вида vX.Y.Z.
+      - name: Drop non-release tags
+        run: git tag -l | grep -vE '^v[0-9]+\.[0-9]+\.[0-9]+$' | xargs -r git tag -d
+
+      - name: Check for release-worthy commits
+        id: check
+        run: |
+          LAST_TAG=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)
+          if [ -z "$LAST_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="$LAST_TAG..HEAD"
+          fi
+          echo "Checking commits in range: ${LAST_TAG:-<repo start>}..HEAD"
+          if git log "$RANGE" --pretty=%B | grep -qE '^(feat|fix|perf|revert)(\(|:)|^BREAKING CHANGE'; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "No release-worthy commits since ${LAST_TAG:-repo start} — skipping release"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.release == 'true'
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.check.outputs.release == 'true'
+        run: npm ci
+
+      - name: Configure git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Release
+        if: steps.check.outputs.release == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # release-it делает свой `git fetch`, который может заново подтянуть
+          # нерелизные теги (vBuild<N> от hexlet-check), и берёт границу версий
+          # через `git describe --tags --match=*`: лишний тег обрезает диапазон
+          # коммитов и релиз тихо пропускается. Поэтому чистим теги повторно
+          # непосредственно перед запуском release-it.
+          git tag -l | grep -vE '^v[0-9]+\.[0-9]+\.[0-9]+$' | xargs -r git tag -d
+          echo "Tags right before release-it:"; git tag -l
+          npx release-it --ci
