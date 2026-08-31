@@ -39,11 +39,22 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      # Агент делает коммиты в ветках (например, по "/oc fix this"). Без
+      # identity в раннере `git commit` падает с "Author identity unknown".
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         with:
           model: opencode/ling-3.0-flash-fin-free
           use_github_token: true
