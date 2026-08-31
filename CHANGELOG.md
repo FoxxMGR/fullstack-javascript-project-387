@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 (2026-08-31)
+
+### Features
+
+* перенести приложение календаря звонков в новый репозиторий ([2719533](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/27195337fae28d81e67cd9dae6f156a8e3dc8c27))
+
 > Версии ниже выпускались в предыдущем репозитории проекта
 > ([fullstack-javascript-project-386](https://github.com/FoxxMGR/fullstack-javascript-project-386)).
 > В этом репозитории история продолжается от версии 0.2.0.
