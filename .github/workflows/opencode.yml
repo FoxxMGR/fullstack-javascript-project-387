@@ -1,5 +1,4 @@
 # Вызов агента OpenCode из комментариев к issue и PR.
-# Установка App: https://github.com/apps/opencode-agent
 # Документация: https://opencode.ai/docs/github/
 #
 # Триггер: новый комментарий, содержащий /oc или /opencode (в любой части
@@ -11,6 +10,10 @@
 # Модель — бесплатная (free-период): deepseek-v4-flash-free. Другие free:
 # mimo-v2.5-free, ling-3.0-flash-fin-free, nemotron-3-ultra-free,
 # nemotron-3.5-lightning-free, laguna-s-2.1-free, big-pickle.
+#
+# Ответы публикуются от github-actions[bot] через стандартный GITHUB_TOKEN
+# (use_github_token: true — документированный режим без токена установки
+# OpenCode App: у текущей установки App нет прав записи).
 
 name: opencode
 
@@ -26,7 +29,9 @@ jobs:
       contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode')
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      contents: write
+      issues: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -38,6 +43,8 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/deepseek-v4-flash-free
+          use_github_token: true
           # share: true
