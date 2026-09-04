@@ -1,0 +1,68 @@
+# Авторевью pull request'ов агентом OpenCode.
+# Документация: https://opencode.ai/docs/github/
+#
+# Триггер: события pull_request (opened, synchronize, reopened,
+# ready_for_review). Агент читает diff и по критериям из prompt оставляет
+# замечания комментарием от токена раннера (use_github_token: true).
+# Это «первый проход» по стилю, типам и очевидным ошибкам; решение о
+# слиянии и аппруве остаётся за человеком — прав на запись у воркфлоу нет.
+#
+# Провайдер: OpenCode Zen (https://opencode.ai/zen). Требуется секрет
+# OPENCODE_API_KEY (Settings → Secrets and variables → Actions).
+# Модель та же, что в opencode.yml: ling-3.0-flash-fin-free.
+# Через GITHUB_TOKEN воркфлоу хватает только на чтение репозитория и
+# публикацию комментариев — одобрить или слить PR он не может.
+
+name: auto-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  id-token: write
+
+jobs:
+  auto-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Черновики (draft PR, ready_for_review ещё не нажат) не ревьюим.
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Auto-review with OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: opencode/ling-3.0-flash-fin-free
+          use_github_token: true
+          # Критерии авторевью: первый проход по стилю, типам и очевидным
+          # ошибкам. Разворачивать в отдельный PR/issue не нужно — только
+          # замечания в обсуждении.
+          prompt: |
+            Проведи ревью этого pull request как строгий senior-разработчик.
+            Это автоматический «первый проход» перед ручным ревью человеком.
+
+            Оцени:
+            1. Стиль и соответствие кодовой базе (идиомы, именование).
+            2. Типы и корректность TypeScript: отсутствие операций без учёта
+               null/undefined, избыточных кастов, неверных типов.
+            3. Очевидные ошибки: гонки, утечки ресурсов, падение на пустых
+               данных, несоответствие контракту api-spec/main.tsp.
+            4. Покрытие: добавлены ли тесты на новые ветки логики (e2e).
+            5. Сообщения коммитов — только Conventional Commits
+               (feat/fix/docs/test/refactor/ci/chore: ...).
+
+            Формат ответа — краткий список замечаний по приоритету
+            (Blocker / Should / Nit). Если замечаний нет, напиши об этом
+            «Авторевью: замечаний нет». Не мержи и не одобряй PR.
