@@ -109,7 +109,7 @@ namespace CalendarBookingService {
     op getAvailableSlots(
       @query eventTypeId: string,
       @query dateFrom?: string, // ISO дата, по умолчанию сегодня
-      @query dateTo?: string    // ISO дата, по умолчанию +14 дней
+      @query dateTo?: string    // ISO дата, по умолчанию +14 дней; не более 60 дней включительно от dateFrom
     ): TimeSlot[] | ValidationError;
 
     /** Создать новое бронирование */
