@@ -60,6 +60,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      # Чтобы `git push` агента не падал с "could not read Username for
+      # https://github.com", переписываем remote на токенную форму и включаем
+      # credential helper. GITHUB_TOKEN маскируется GitHub в логах, в вывод не
+      # попадает.
+      - name: Prepare authenticated remote for agent pushes
+        run: |
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git config --global credential.helper cache
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
