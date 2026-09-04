@@ -13,6 +13,14 @@ import type { TimeSlot } from './types.ts';
 export const WORK_START_HOUR = 9;
 export const WORK_END_HOUR = 18;
 
+/**
+ * Максимальный диапазон запроса слотов (в днях включительно) для
+ * `/guest/availability`. Ограничение защищает от генерации сотен тысяч
+ * слотов одним запросом (потенциальный DoS): запрос за больший период
+ * отклоняется с 400 RANGE_TOO_LARGE.
+ */
+export const MAX_AVAILABILITY_DAYS = 60;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Разбирает ISO-дату YYYY-MM-DD в локальную полночь; null, если строка невалидна. */

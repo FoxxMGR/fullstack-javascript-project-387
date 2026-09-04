@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { ApiError, toValidationError } from './errors.ts';
 import {
   DAY_MS_CONST,
+  MAX_AVAILABILITY_DAYS,
   addDays,
   generateSlots,
   isGridSlotStart,
@@ -163,6 +164,18 @@ function getAvailableSlots(ctx: RouteContext, st: Store): void {
   const to = dateTo ?? addDays(from, 14);
   if (from.getTime() > to.getTime()) {
     throw new ApiError(400, 'INVALID_DATE_RANGE', 'dateFrom не может быть позже dateTo');
+  }
+
+  // Защита от генерации сотен тысяч слотов одним запросом (потенциальный DoS):
+  // диапазон не может превышать MAX_AVAILABILITY_DAYS дней включительно.
+  const rangeDays = Math.floor((to.getTime() - from.getTime()) / DAY_MS_CONST) + 1;
+  if (rangeDays > MAX_AVAILABILITY_DAYS) {
+    throw new ApiError(
+      400,
+      'RANGE_TOO_LARGE',
+      `Диапазон дат не может превышать ${MAX_AVAILABILITY_DAYS} дней`,
+      { field: 'dateTo', expected: `не более ${MAX_AVAILABILITY_DAYS} дней от dateFrom` },
+    );
   }
 
   const slots = generateSlots(st, eventType.durationMinutes, from, to);
