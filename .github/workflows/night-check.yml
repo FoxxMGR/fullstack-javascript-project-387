@@ -1,0 +1,125 @@
+# Ночная проверка производительности и доступности приложения: Lighthouse
+# + разбор отчёта агентом OpenCode и создание issue с итогами.
+#
+# Расписание: cron 0 3 * * * (03:00 UTC = 06:00 по Москве), один раз в сутки.
+# Ручной запуск: workflow_dispatch (Actions → night-check → Run workflow).
+# Публичный адрес приложения задаётся переменной репозитория APP_URL
+# (Settings → Secrets and variables → Actions → Variables), чтобы URL не был
+# захардкожен в воркфлоу.
+#
+# Права: агенту нужна запись для коммитов/PR/issues (contents/pull-requests/
+# issues: write), плюс id-token: write для действия OpenCode.
+
+name: night-check
+
+on:
+  schedule:
+    # 03:00 UTC = 06:00 МСК — отчёт готов к утреннему разбору.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate APP_URL
+        run: |
+          if [ -z "${APP_URL}" ]; then
+            echo "::error::Переменная репозитория APP_URL не задана."
+            echo "::error::Задайте её: Settings → Secrets and variables → Actions → Variables."
+            exit 1
+          fi
+          if ! curl -fsS -o /dev/null --max-time 30 "${APP_URL}/health"; then
+            echo "::error::Приложение по APP_URL недоступно (GET ${APP_URL}/health)."
+            exit 1
+          fi
+          echo "APP_URL готов."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Run Lighthouse
+        run: |
+          npx --yes lighthouse@latest "$APP_URL" \
+            --quiet \
+            --chrome-flags="--headless --no-sandbox --disable-gpu" \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --max-wait-for-load=45000 \
+            --output=json --output=html \
+            --output-path=./lighthouse/report
+          # lighthouse дописывает ".report.<ext>"; приводим имена к единому виду.
+          mv ./lighthouse/report.report.json ./lighthouse/lighthouse.report.json
+          mv ./lighthouse/report.report.html ./lighthouse/lighthouse.report.html
+          echo "Отчёт:"
+          ls -la ./lighthouse/
+
+      - name: Upload Lighthouse report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: lighthouse/
+          if-no-files-found: error
+
+  review:
+    needs: lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions: inherit
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download Lighthouse report
+        uses: actions/download-artifact@v4
+        with:
+          name: lighthouse-report
+          path: lighthouse
+
+      - name: Run OpenCode analysis
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: opencode/ling-3.0-flash-fin-free
+          use_github_token: true
+          # Обязательный prompt: у запуска по расписанию нет комментария/треда,
+          # инструкции агенту задаются только здесь.
+          prompt: |
+            Проверка приложения по расписанию завершена. Прочитай отчёт
+            Lighthouse в файле lighthouse/lighthouse.report.json.
+
+            Шаг 1 — проанализируй отчёт:
+            1. Выпиши баллы по категориям (performance, accessibility,
+               best-practices, seo) из "categories" (score от 0 до 1).
+            2. Найди конкретные проблемы из "audits": низкие scores (< 0.9),
+               failed audits, большие значения metrics (LCP, TBT, CLS),
+               ошибки консоли, отсутствие мета-description, плохой contrast
+               и т.п. Забей на статические линтеры, но укажи самое важное.
+            3. Сформулируй приоритеты: Blocker / Should / Nit.
+
+            Шаг 2 — сохрани результат:
+            1. Создай issue "Ночная проверка: отчёт Lighthouse" с меткой
+               "enhancement" и title вида "Ночная проверка".
+               В теле: дату проверки, итоговые scores в таблице, список
+               находок, рекомендации ссылки на контракт/ROADMAP, ничего не исполни.
+            2. Если те же проблемы уже отражены в открытых issue — укажи их
+               номера и не создавай дубликаты по одной проблеме.
+            3. Минимум один issue с выводом обязательно создай.
+
+            Требования: не вноси изменения в код, не открывай PR, не мержи.
+            Замечания пиши на русском.
