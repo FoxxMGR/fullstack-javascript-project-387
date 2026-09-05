@@ -1,0 +1,96 @@
+# Вызов агента OpenCode из комментариев к issue и PR.
+# Документация: https://opencode.ai/docs/github/
+#
+# Триггер: новый комментарий, содержащий /oc или /opencheck (в любой части
+# комментария — условие в if ниже). Агент читает тред issue и отвечает
+# комментарием; по команде вида "/opencheck fix this" создаёт ветку и PR.
+#
+# Провайдер: OpenCode Zen (https://opencode.ai/zen). Требуется секрет
+# OPENCODE_API_KEY (Settings → Secrets and variables → Actions).
+# Модель — бесплатная (free): ling-3.0-flash-fin-free (подтверждена агентом
+# как доступная; deepseek-v4-flash-free в реестре моделей отсутствует).
+# Другие free-слаги можно проверить списком: https://opencode.ai/zen/v1/models
+#
+# Ответы публикуются от github-actions[bot] через стандартный GITHUB_TOKEN
+# (use_github_token: true — документированный режим без токена установки
+# OpenCode App: у текущей установки App нет прав записи).
+#
+# Против петелей (pet = ответ агента сам является комментарием, который мог бы
+# снова запустить воркфлоу) есть два условия в job.if ниже:
+#   1) события от ботов и приложения отсекаются (comment.user.type != 'Bot');
+#   2) команда вызова задана узко через mentions (/oc, /opencheck) и явно.
+# Дополнительно круг тех, кто может звать агента, ограничен переменной
+# репозитория AGENT_ALLOWED_AUTHORS (запятая-список логинов, см. README).
+#
+# Права: агент создаёт коммиты в ветках, отвечает в issues и открывает PR —
+# поэтому нужны contents/issues/pull-requests write, а также id-token: write
+# (для OIDC-аутентификации OpenCode App — без неё action падает с 403 на
+# POST /issues/{n}/comments и /reactions).
+
+name: opencheck
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  opencheck:
+    if: |
+      github.event.comment.user.type != 'Bot' &&
+      contains(format(',{0},', vars.AGENT_ALLOWED_AUTHORS), format(',{0},', github.event.comment.user.login)) &&
+      (contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencheck'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # Агент делает коммиты в ветках (например, по "/oc fix this"). Без
+      # identity в раннере `git commit` падает с "Author identity unknown".
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # Чтобы `git push` агента не падал с "could not read Username for
+      # https://github.com", переписываем remote на токенную форму и включаем
+      # credential helper. GITHUB_TOKEN маскируется GitHub в логах, в вывод не
+      # попадает.
+      - name: Prepare authenticated remote for agent pushes
+        run: |
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git config --global credential.helper cache
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run OpenCode
+        uses: anomalo/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        with:
+          model: opencheck/ling-3.0-flash-fin-free
+          use_github_token: true
+          # Набор команд вызова задан явно (совпадает с дефолтом /opencheck,/oc).
+          # Широкая команда не нужна: ответ агента — тоже комментарий, и узкий
+          # набор плюс фильтр ботов выше держат риск петель близко к нулю.
+          mentions: '/oc, /opencheck'
+          # Публичный репозиторий: сессии не публикуем. Решение принято
+          # осознанно — контекст и переписка агента не уходят по публичной
+          # ссылке (по умолчанию share=true, мы это отключаем).
+          share: false

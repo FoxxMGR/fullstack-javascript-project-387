@@ -27,8 +27,8 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
-  issues: read
+  pull-requests: write
+  issues: write
   id-token: write
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # Черновики (draft PR, ready_for_review ещё не нажат) не ревьюим.
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false && !endsWith(github.event.pull_request.user.login, '[bot]')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

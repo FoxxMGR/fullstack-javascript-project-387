@@ -19,6 +19,17 @@ on:
     # 03:00 UTC = 06:00 МСК — отчёт готов к утреннему разбору.
     - cron: '0 3 * * *'
   workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Дополнительная инструкция для OpenCode (prompt override)'
+        required: false
+        type: string
+        default: ''
+      model:
+        description: 'Модель OpenCode'
+        required: false
+        type: string
+        default: 'opencheck/ling-3.0-flash-fin-free'
 
 permissions:
   contents: read
@@ -96,7 +107,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/ling-3.0-flash-fin-free
+          model: ${{ inputs.model }}
           use_github_token: true
           # Обязательный prompt: у запуска по расписанию нет комментария/треда,
           # инструкции агенту задаются только здесь.
