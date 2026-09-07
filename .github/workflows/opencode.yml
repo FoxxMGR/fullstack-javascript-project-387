@@ -3,28 +3,25 @@
 #
 # Триггер: новый комментарий, содержащий /oc или /opencode (в любой части
 # комментария — условие в if ниже). Агент читает тред issue и отвечает
-# комментарием; по команде вида "/opencode fix this" создаёт ветку и PR.
+# комментарием; по команде вида "/oc fix this" создаёт ветку и PR.
 #
 # Провайдер: OpenCode Zen (https://opencode.ai/zen). Требуется секрет
-# OPENCODE_API_KEY (Settings → Secrets and variables → Actions).
-# Модель — бесплатная (free): ling-3.0-flash-fin-free (подтверждена агентом
-# как доступная; deepseek-v4-flash-free в реестре моделей отсутствует).
-# Другие free-слаги можно проверить списком: https://opencode.ai/zen/v1/models
+# OPENCODE_API_KEY (Settings -> Secrets and variables -> Actions).
+# Модель — бесплатная (free): opencode/ling-3.0-flash-fin-free.
 #
 # Ответы публикуются от github-actions[bot] через стандартный GITHUB_TOKEN
 # (use_github_token: true — документированный режим без токена установки
 # OpenCode App: у текущей установки App нет прав записи).
 #
-# Против петель (pet = ответ агента сам является комментарием, который мог бы
-# снова запустить воркфлоу) есть два условия в job.if ниже:
-#   1) события от ботов и приложения отсекаются (comment.user.type != 'Bot');
-#   2) команда вызова задана узко через mentions (/oc, /opencode) и явно.
-# Дополнительно круг тех, кто может звать агента, ограничен переменной
-# репозитория AGENT_ALLOWED_AUTHORS (запятая-список логинов, см. README).
+# Против петелей: события от ботов отсекаются (comment.user.type != Bot),
+# команда вызова задана узко через mentions (/oc, /opencode). Дополнительно
+# круг тех, кто может звать агента, ограничен переменной
+# AGENT_ALLOWED_AUTHORS (запятая-список логинов, см. README).
 #
-# Права: агент создаёт коммиты в ветках, отвечает в issues и открывает PR —
-# поэтому нужны contents/issues/pull-requests write. id-token не требуется,
-# т.к. используется use_github_token: true (без обмена OIDC-токена).
+# Права: агент создаёт коммиты, отвечает в issues и открывает PR —
+# нужны contents/issues/pull-requests write. id-token: write также
+# требуется: без него action падает с 403 на POST /issues/{n}/comments
+# и /reactions (OpenCode GitHub App использует OIDC для аутентификации).
 
 name: opencode
 
@@ -46,9 +43,10 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+      id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -76,18 +74,8 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GIT_AUTHOR_NAME: github-actions[bot]
-          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-          GIT_COMMITTER_NAME: github-actions[bot]
-          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         with:
           model: opencode/ling-3.0-flash-fin-free
           use_github_token: true
-          # Набор команд вызова задан явно (совпадает с дефолтом /opencode,/oc).
-          # Широкая команда не нужна: ответ агента — тоже комментарий, и узкий
-          # набор плюс фильтр ботов выше держат риск петель близко к нулю.
           mentions: '/oc, /opencode'
-          # Публичный репозиторий: сессии не публикуем. Решение принято
-          # осознанно — контекст и переписка агента не уходят по публичной
-          # ссылке (по умолчанию share=true, мы это отключаем).
           share: false
