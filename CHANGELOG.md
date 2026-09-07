@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.1...v0.3.2) (2026-09-07)
+
+### Bug Fixes
+
+* **ci:** add id-token: write to opencode.yml, remove broken opencheck.yml ([ae94f65](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/ae94f652e0eba4c03e13eb3d59b2368662edb9d4))
+* **ci:** fix github.body -> github.event.comment.body in opencheck.yml condition ([dd0597e](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/dd0597e2bb3bbe149a00087270a4097f13fb72db))
+* **ci:** remove duplicate opencheck.yml — keep only opencheck.yml ([b88feb4](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/b88feb43cd21d32045b966637997208a404ebc7e))
+
 ## [0.3.1](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/vBuild851183...v0.3.1) (2026-09-07)
 
 ### Bug Fixes
