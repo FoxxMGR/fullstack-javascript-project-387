@@ -88,7 +88,10 @@ jobs:
     needs: lighthouse
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions: inherit
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
     steps:
       - uses: actions/checkout@v6
         with:
