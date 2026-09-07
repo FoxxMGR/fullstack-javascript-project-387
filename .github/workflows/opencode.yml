@@ -35,8 +35,9 @@ jobs:
   opencode:
     if: |
       github.event.comment.user.type != 'Bot' &&
-      # contains(format(',{0},', vars.AGENT_ALLOWED_AUTHORS), format(',{0},', github.event.comment.user.login)) &&
       (contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode'))
+      # contains(format(',{0},', vars.AGENT_ALLOWED_AUTHORS), format(',{0},', github.event.comment.user.login)) &&
+      # (contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
