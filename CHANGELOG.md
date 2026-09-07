@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.1](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/vBuild851183...v0.3.1) (2026-09-07)
+
+### Bug Fixes
+
+* **ci:** fix opencheck.yml typo (anomalo -> anomalyco, model slug) and checkout v7 ([b8bac47](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/b8bac4729dc35d07e01d6dbc2d098a39834834c0))
+
 ## 0.3.0 (2026-08-31)
 
 ### Features
