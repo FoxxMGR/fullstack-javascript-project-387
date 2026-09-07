@@ -35,14 +35,14 @@ jobs:
   opencode:
     if: |
       github.event.comment.user.type != 'Bot' &&
-      contains(format(',{0},', vars.AGENT_ALLOWED_AUTHORS), format(',{0},', github.event.comment.user.login)) &&
+      # contains(format(',{0},', vars.AGENT_ALLOWED_AUTHORS), format(',{0},', github.event.comment.user.login)) &&
       (contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+      # contents: write
+      # issues: write
+      # pull-requests: write
       id-token: write
     steps:
       - name: Checkout repository
@@ -53,21 +53,21 @@ jobs:
 
       # Агент делает коммиты в ветках (например, по "/oc fix this"). Без
       # identity в раннере `git commit` падает с "Author identity unknown".
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      # - name: Configure git identity
+      #   run: |
+      #     git config user.name "github-actions[bot]"
+      #     git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       # Чтобы `git push` агента не падал с "could not read Username for
       # https://github.com", переписываем remote на токенную форму и включаем
       # credential helper. GITHUB_TOKEN маскируется GitHub в логах, в вывод не
       # попадает.
-      - name: Prepare authenticated remote for agent pushes
-        run: |
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git config --global credential.helper cache
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Prepare authenticated remote for agent pushes
+      #   run: |
+      #     git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+      #     git config --global credential.helper cache
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
