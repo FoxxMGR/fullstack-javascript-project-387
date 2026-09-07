@@ -14,6 +14,17 @@
 # Ответы публикуются от github-actions[bot] через стандартный GITHUB_TOKEN
 # (use_github_token: true — документированный режим без токена установки
 # OpenCode App: у текущей установки App нет прав записи).
+#
+# Против петель (pet = ответ агента сам является комментарием, который мог бы
+# снова запустить воркфлоу) есть два условия в job.if ниже:
+#   1) события от ботов и приложения отсекаются (comment.user.type != 'Bot');
+#   2) команда вызова задана узко через mentions (/oc, /opencode) и явно.
+# Дополнительно круг тех, кто может звать агента, ограничен переменной
+# репозитория AGENT_ALLOWED_AUTHORS (запятая-список логинов, см. README).
+#
+# Права: агент создаёт коммиты в ветках, отвечает в issues и открывает PR —
+# поэтому нужны contents/issues/pull-requests write. id-token не требуется,
+# т.к. используется use_github_token: true (без обмена OIDC-токена).
 
 name: opencode
 
@@ -26,7 +37,9 @@ on:
 jobs:
   opencode:
     if: |
-      contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode')
+      github.event.comment.user.type != 'Bot' &&
+      contains(format(',{0},', vars.AGENT_ALLOWED_AUTHORS), format(',{0},', github.event.comment.user.login)) &&
+      (contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -47,6 +60,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      # Чтобы `git push` агента не падал с "could not read Username for
+      # https://github.com", переписываем remote на токенную форму и включаем
+      # credential helper. GITHUB_TOKEN маскируется GitHub в логах, в вывод не
+      # попадает.
+      - name: Prepare authenticated remote for agent pushes
+        run: |
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git config --global credential.helper cache
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
@@ -59,4 +83,11 @@ jobs:
         with:
           model: opencode/ling-3.0-flash-fin-free
           use_github_token: true
-          # share: true
+          # Набор команд вызова задан явно (совпадает с дефолтом /opencode,/oc).
+          # Широкая команда не нужна: ответ агента — тоже комментарий, и узкий
+          # набор плюс фильтр ботов выше держат риск петель близко к нулю.
+          mentions: '/oc, /opencode'
+          # Публичный репозиторий: сессии не публикуем. Решение принято
+          # осознанно — контекст и переписка агента не уходят по публичной
+          # ссылке (по умолчанию share=true, мы это отключаем).
+          share: false
