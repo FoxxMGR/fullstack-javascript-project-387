@@ -29,7 +29,7 @@ on:
         description: 'Модель OpenCode'
         required: false
         type: string
-        default: 'opencheck/ling-3.0-flash-fin-free'
+        default: "opencode/ling-3.0-flash-fin-free"
 
 permissions:
   contents: read
