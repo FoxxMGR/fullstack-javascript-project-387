@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.5](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.4...v0.3.5) (2026-09-07)
+
+### Bug Fixes
+
+* **ci:** чиним пайплайн opencode.yml попытка 3 ([6d9b2a7](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/6d9b2a7904a8b4ff37311c4f7be26fb3a2695b9a))
+
 ## [0.3.4](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.3...v0.3.4) (2026-09-07)
 
 ### Bug Fixes
