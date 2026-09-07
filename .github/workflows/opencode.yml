@@ -23,6 +23,7 @@
 # требуется: без него action падает с 403 на POST /issues/{n}/comments
 # и /reactions (OpenCode GitHub App использует OIDC для аутентификации).
 
+
 name: opencode
 
 on:
