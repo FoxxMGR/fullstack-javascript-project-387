@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.7](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.6...v0.3.7) (2026-09-08)
+
+### Bug Fixes
+
+* **ci:** увеличить таймаут opencode до 90 минут ([2cfd836](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/2cfd83685178ab160a0dc6e9a9018dfe40232650))
+
 ## [0.3.6](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.5...v0.3.6) (2026-09-08)
 
 ### Bug Fixes
