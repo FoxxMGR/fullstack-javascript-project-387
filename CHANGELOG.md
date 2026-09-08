@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.6](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.5...v0.3.6) (2026-09-08)
+
+### Bug Fixes
+
+* **ci:** чиним пайплайн opencode.yml попытка 4 увеличил время timeout-minutes: 60 ([1a0ec1a](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/1a0ec1a898b656837b8ce662c8b6ad4882392a50))
+
 ## [0.3.5](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.4...v0.3.5) (2026-09-07)
 
 ### Bug Fixes
