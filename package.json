@@ -1,7 +1,7 @@
 {
   "name": "calendar-booking-api",
   "private": true,
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "Calendar Booking API — fullstack-приложение бронирования встреч (server + web + e2e)",
   "license": "UNLICENSED",
   "devDependencies": {

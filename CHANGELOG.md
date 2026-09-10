@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.9](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.8...v0.3.9) (2026-09-10)
+
+### Bug Fixes
+
+* **ci:** чиним пайплайн opencode.yml поменяли модель на deepseek-v4-flash-free ([973b0a9](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/973b0a9c7fc49ea2914255c9be11b9572cc188b2))
+
 ## [0.3.8](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.7...v0.3.8) (2026-09-10)
 
 ### Bug Fixes
