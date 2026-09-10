@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.10](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.9...v0.3.10) (2026-09-10)
+
+### Bug Fixes
+
+* **ci:** чиним пайплайн opencode.yml поменяли модель на mimo-v2.5-free ([41aebc3](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/41aebc328de81eb080b52d4590c0bc4d4b193700))
+
 ## [0.3.9](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.8...v0.3.9) (2026-09-10)
 
 ### Bug Fixes
