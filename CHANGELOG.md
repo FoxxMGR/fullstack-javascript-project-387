@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.11](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.10...v0.3.11) (2026-09-10)
+
+### Bug Fixes
+
+* **ci:** чиним пайплайн opencode.yml закоментировали использование гитхаб токена ([a7f055f](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/a7f055fcd31a864d987c15f03890541bcf5ca249))
+
 ## [0.3.10](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.9...v0.3.10) (2026-09-10)
 
 ### Bug Fixes
