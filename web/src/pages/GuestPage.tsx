@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { guestApi, ApiError } from '../api/client';
 import type { CreateBookingRequest, EventType, TimeSlot } from '../api/types';
-import { formatDateTime, formatTime, inTwoWeeksISO, todayISO } from '../lib/format';
+import DateTimePicker from '../components/DateTimePicker';
 
-type Step = 'types' | 'slots' | 'form' | 'done';
+type Step = 'types' | 'picker' | 'form' | 'done';
 
 export default function GuestPage() {
   const [types, setTypes] = useState<EventType[]>([]);
@@ -12,10 +12,8 @@ export default function GuestPage() {
 
   const [step, setStep] = useState<Step>('types');
   const [selectedType, setSelectedType] = useState<EventType | null>(null);
-  const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
-  // Поля формы бронирования.
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -36,20 +34,6 @@ export default function GuestPage() {
   useEffect(() => {
     void loadTypes();
   }, [loadTypes]);
-
-  const selectType = async (type: EventType) => {
-    setSelectedType(type);
-    setStep('slots');
-    setSlots([]);
-    setError(null);
-    try {
-      setSlots(await guestApi.getAvailableSlots(type.id, todayISO(), inTwoWeeksISO()));
-    } catch (e) {
-      setSelectedType(null);
-      setStep('types');
-      setError(e instanceof ApiError ? e.message : 'Не удалось загрузить слоты');
-    }
-  };
 
   const pickSlot = (slot: TimeSlot) => {
     if (!slot.isAvailable) return;
@@ -79,7 +63,6 @@ export default function GuestPage() {
     setStep('types');
     setSelectedType(null);
     setSelectedSlot(null);
-    setSlots([]);
     setGuestName('');
     setGuestEmail('');
     setBooking(null);
@@ -111,7 +94,6 @@ export default function GuestPage() {
     <div>
       <h2>Запись на встречу</h2>
 
-      {/* Шаг 1: список типов событий */}
       {step === 'types' && (
         <>
           {error && <div className="err">{error}</div>}
@@ -121,7 +103,10 @@ export default function GuestPage() {
                 <h3>{t.title}</h3>
                 {t.description && <p className="muted">{t.description}</p>}
                 <p className="muted">Длительность: {t.durationMinutes} мин</p>
-                <button className="btn primary" onClick={() => void selectType(t)}>
+                <button className="btn primary" onClick={() => {
+                  setSelectedType(t);
+                  setStep('picker');
+                }}>
                   Выбрать
                 </button>
               </div>
@@ -130,54 +115,28 @@ export default function GuestPage() {
         </>
       )}
 
-      {/* Шаг 2: свободные слоты */}
-      {step === 'slots' && selectedType && (
-        <>
-          <div className="row" style={{ marginBottom: 12 }}>
-            <button className="btn" onClick={() => setStep('types')}>
-              ← Назад
-            </button>
-            <h3 style={{ margin: 0 }}>{selectedType.title}</h3>
-          </div>
-          {slots.length === 0 ? (
-            <div className="empty">Свободных слотов в ближайшие 14 дней нет.</div>
-          ) : (
-            <>
-              <p className="muted">Выберите свободный слот (окно 14 дней):</p>
-              <div className="grid grid-2">
-                {slots
-                  .filter((s) => s.isAvailable)
-                  .map((s) => (
-                    <button
-                      key={s.startTime}
-                      className="btn"
-                      style={{ textAlign: 'left', padding: '12px' }}
-                      onClick={() => pickSlot(s)}
-                    >
-                      <div>
-                        {formatDateTime(s.startTime)} — {formatTime(s.endTime)}
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </>
-          )}
-        </>
+      {step === 'picker' && selectedType && (
+        <DateTimePicker
+          eventTypeId={selectedType.id}
+          eventType={selectedType}
+          selectedSlot={selectedSlot}
+          onSlotSelect={pickSlot}
+          onBack={() => setStep('types')}
+        />
       )}
 
-      {/* Шаг 3: форма бронирования */}
       {step === 'form' && selectedType && selectedSlot && (
         <>
           <div className="row" style={{ marginBottom: 12 }}>
-            <button className="btn" onClick={() => setStep('slots')}>
+            <button className="btn" onClick={() => setStep('picker')}>
               ← Назад
             </button>
             <h3 style={{ margin: 0 }}>{selectedType.title}</h3>
           </div>
           <div className="card">
             <p>
-              <strong>Время:</strong> {formatDateTime(selectedSlot.startTime)} —{' '}
-              {formatTime(selectedSlot.endTime)}
+              <strong>Время:</strong> {selectedSlot.startTime ? new Date(selectedSlot.startTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''} —{' '}
+              {selectedSlot.endTime ? new Date(selectedSlot.endTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : ''}
             </p>
             {submitError && <div className="err">{submitError}</div>}
             <div className="field">
@@ -208,14 +167,13 @@ export default function GuestPage() {
         </>
       )}
 
-      {/* Шаг 4: подтверждение */}
       {step === 'done' && booking && (
         <div className="card">
           <h3>Бронирование подтверждено 🎉</h3>
           <p>
             Номер брони: <strong>{booking.id}</strong>
           </p>
-          <p>Время: {formatDateTime(booking.startTime)}</p>
+          <p>Время: {booking.startTime ? new Date(booking.startTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>
           <button className="btn primary" onClick={reset}>
             Записаться ещё
           </button>
