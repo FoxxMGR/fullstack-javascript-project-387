@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.13](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.12...v0.3.13) (2026-09-11)
+
+### Bug Fixes
+
+* **ci:** чиним пайплайн workflows/auto-review.yml  вернул работу через гитхаб токен ([bd58e08](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/bd58e08abb3d34d604e8f9421976355a7bb3aac1))
+
 ## [0.3.12](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.11...v0.3.12) (2026-09-11)
 
 ### Bug Fixes
