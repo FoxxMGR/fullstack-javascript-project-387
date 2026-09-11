@@ -35,6 +35,11 @@ jobs:
   auto-review:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      # contents: write
+      # issues: write
+      # pull-requests: write
+      id-token: write
     # Черновики (draft PR, ready_for_review ещё не нажат) не ревьюим.
     if: github.event.pull_request.draft == false && !endsWith(github.event.pull_request.user.login, '[bot]')
     steps:
@@ -48,10 +53,10 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/ling-3.0-flash-fin-free
-          use_github_token: true
+          model: opencode/mimo-v2.5-free
+          # use_github_token: true
           # Критерии авторевью: первый проход по стилю, типам и очевидным
           # ошибкам. Разворачивать в отдельный PR/issue не нужно — только
           # замечания в обсуждении.
