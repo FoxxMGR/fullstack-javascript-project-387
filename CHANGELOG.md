@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.12](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.11...v0.3.12) (2026-09-11)
+
+### Bug Fixes
+
+* **ci:** чиним пайплайн workflows/auto-review.yml поменяли модель на mimo-v2.5-free ([af7ae3f](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/af7ae3f5dbe652843df7afa28d4183dd80956e6a))
+
 ## [0.3.11](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.10...v0.3.11) (2026-09-10)
 
 ### Bug Fixes
