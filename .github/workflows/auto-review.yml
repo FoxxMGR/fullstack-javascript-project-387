@@ -41,7 +41,7 @@ jobs:
       # pull-requests: write
       id-token: write
     # Черновики (draft PR, ready_for_review ещё не нажат) не ревьюим.
-    if: github.event.pull_request.draft == false && !endsWith(github.event.pull_request.user.login, '[bot]')
+    if: github.event.pull_request.draft == false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

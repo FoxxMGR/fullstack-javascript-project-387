@@ -253,7 +253,7 @@ function adminListBookings(ctx: RouteContext, st: Store): void {
 
   const nowMs = Date.now();
   let result = st.bookings.filter((b) => {
-    const startMs = Date.parse(b.startTime);
+    const startMs = new Date(b.startTime).getTime();
     if (status === 'past') {
       return startMs < nowMs;
     }
@@ -265,14 +265,14 @@ function adminListBookings(ctx: RouteContext, st: Store): void {
 
   if (from) {
     const fromMs = from.getTime();
-    result = result.filter((b) => Date.parse(b.startTime) >= fromMs);
+    result = result.filter((b) => new Date(b.startTime).getTime() >= fromMs);
   }
   if (to) {
-    const toMs = to.getTime() + DAY_MS_CONST; // включая весь день dateTo
-    result = result.filter((b) => Date.parse(b.startTime) < toMs);
+    const toMs = to.getTime() + DAY_MS_CONST;
+    result = result.filter((b) => new Date(b.startTime).getTime() < toMs);
   }
 
-  result = [...result].sort((a, b) => Date.parse(a.startTime) - Date.parse(b.startTime));
+  result = [...result].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   sendJson(ctx.res, 200, result);
 }
 

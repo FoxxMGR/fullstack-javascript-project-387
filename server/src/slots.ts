@@ -4,8 +4,8 @@ import type { TimeSlot } from './types.ts';
 /**
  * Бизнес-правила расписания владельца календаря.
  *
- * Слоты генерируются по рабочему окну: Пн–Пт с 09:00 до 18:00 (локальное
- * время сервера), шаг сетки равен длительности типа события. Слот считается
+ * Слоты генерируются по рабочему окну: Пн–Пт с 09:00 до 18:00 (UTC),
+ * шаг сетки равен длительности типа события. Слот считается
  * занятым, если пересекается с любым существующим бронированием — владелец
  * не может находиться на двух встречах одновременно, даже разных типов.
  */
@@ -13,9 +13,10 @@ import type { TimeSlot } from './types.ts';
 export const WORK_START_HOUR = 9;
 export const WORK_END_HOUR = 18;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** Длительность полного дня в миллисекундах (для границ фильтра dateTo). */
+export const DAY_MS_CONST = 24 * 60 * 60 * 1000;
 
-/** Разбирает ISO-дату YYYY-MM-DD в локальную полночь; null, если строка невалидна. */
+/** Разбирает ISO-дату YYYY-MM-DD в UTC-полночь; null, если строка невалидна. */
 export function parseISODate(value: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!m) {
@@ -24,27 +25,27 @@ export function parseISODate(value: string): Date | null {
   const year = Number(m[1]);
   const month = Number(m[2]);
   const day = Number(m[3]);
-  const date = new Date(year, month - 1, day);
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
     return null;
   }
   return date;
 }
 
-/** Локальная полночь текущего дня. */
+/** UTC-полночь текущего дня. */
 export function todayStartDate(): Date {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-/** Дата через n локальных дней. */
+/** Дата через n UTC-дней. */
 export function addDays(date: Date, days: number): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
 }
 
-/** Является ли день рабочим (Пн–Пт). */
+/** Является ли день рабочим (Пн–Пт) по UTC. */
 export function isWorkingDay(date: Date): boolean {
-  const day = date.getDay(); // 0 = вс, 6 = сб
+  const day = date.getUTCDay();
   return day >= 1 && day <= 5;
 }
 
@@ -62,23 +63,23 @@ export function isTimeSlotFree(st: Store, start: Date, end: Date): boolean {
   const startMs = start.getTime();
   const endMs = end.getTime();
   return !st.bookings.some((b) => {
-    return intervalsOverlap(startMs, endMs, Date.parse(b.startTime), Date.parse(b.endTime));
+    return intervalsOverlap(startMs, endMs, new Date(b.startTime).getTime(), new Date(b.endTime).getTime());
   });
 }
 
-/** Является ли момент корректным началом слота в сетке рабочего времени? */
+/** Является ли момент корректным началом слота в сетке рабочего времени (UTC)? */
 export function isGridSlotStart(durationMinutes: number, start: Date): boolean {
   if (!isWorkingDay(start)) {
     return false;
   }
-  const minutes = start.getHours() * 60 + start.getMinutes();
+  const minutes = start.getUTCHours() * 60 + start.getUTCMinutes();
   if (minutes < WORK_START_HOUR * 60) {
     return false;
   }
   if (minutes + durationMinutes > WORK_END_HOUR * 60) {
     return false;
   }
-  if (start.getSeconds() !== 0 || start.getMilliseconds() !== 0) {
+  if (start.getUTCSeconds() !== 0 || start.getUTCMilliseconds() !== 0) {
     return false;
   }
   return (minutes - WORK_START_HOUR * 60) % durationMinutes === 0;
@@ -87,6 +88,7 @@ export function isGridSlotStart(durationMinutes: number, start: Date): boolean {
 /**
  * Генерирует слоты для типа события в диапазоне [dateFrom, dateTo].
  * Прошедшие слоты не возвращаются; занятые помечаются isAvailable: false.
+ * Все даты в UTC.
  */
 export function generateSlots(
   st: Store,
@@ -97,15 +99,15 @@ export function generateSlots(
   const slots: TimeSlot[] = [];
   const now = new Date();
   const durationMs = durationMinutes * 60_000;
-  const from = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
-  const to = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+  const from = new Date(Date.UTC(dateFrom.getUTCFullYear(), dateFrom.getUTCMonth(), dateFrom.getUTCDate()));
+  const to = new Date(Date.UTC(dateTo.getUTCFullYear(), dateTo.getUTCMonth(), dateTo.getUTCDate()));
 
   for (let day = from; day.getTime() <= to.getTime(); day = addDays(day, 1)) {
     if (!isWorkingDay(day)) {
       continue;
     }
-    const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), WORK_START_HOUR, 0, 0, 0);
-    const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), WORK_END_HOUR, 0, 0, 0);
+    const dayStart = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), WORK_START_HOUR, 0, 0, 0));
+    const dayEnd = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), WORK_END_HOUR, 0, 0, 0));
 
     let cursor = dayStart;
     while (cursor.getTime() + durationMs <= dayEnd.getTime()) {
@@ -123,6 +125,3 @@ export function generateSlots(
   }
   return slots;
 }
-
-/** Длительность полного дня в миллисекундах (для границ фильтра dateTo). */
-export const DAY_MS_CONST = DAY_MS;
