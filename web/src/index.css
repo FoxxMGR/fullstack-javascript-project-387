@@ -196,3 +196,151 @@ th {
   color: #6b7280;
   font-weight: 600;
 }
+
+/* DatePicker */
+.datepicker {
+  margin-top: 8px;
+}
+
+.dp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dp-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.dp-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  padding: 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dp-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  gap: 2px;
+  padding: 4px;
+  min-height: 48px;
+}
+
+.dp-cell:hover:not(.dp-disabled) {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.dp-cell-empty {
+  cursor: default;
+  background: transparent;
+}
+
+.dp-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+
+.dp-today {
+  border-color: #2563eb;
+  font-weight: 700;
+}
+
+.dp-available {
+  background: #f0fdf4;
+}
+
+.dp-available:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.dp-day {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.dp-count {
+  font-size: 10px;
+  color: #16a34a;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.dp-loading {
+  text-align: center;
+  padding: 24px;
+  color: #6b7280;
+}
+
+.dp-empty {
+  text-align: center;
+  padding: 24px;
+  color: #6b7280;
+  border: 1px dashed #d3d9dd;
+  border-radius: 12px;
+}
+
+/* Daily timeline */
+.dp-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.dp-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid #d3d9dd;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 15px;
+}
+
+.dp-slot:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.dp-slot-time {
+  font-weight: 500;
+}
+
+.dp-slot-sep {
+  color: #9ca3af;
+}
+
+.dp-slot:hover .dp-slot-sep {
+  color: #bfdbfe;
+}
