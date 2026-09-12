@@ -29,7 +29,7 @@ on:
         description: 'Модель OpenCode'
         required: false
         type: string
-        default: "opencode/ling-3.0-flash-fin-free"
+        default: "opencode/mimo-v2.5-free"
 
 permissions:
   contents: read
@@ -109,10 +109,10 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: ${{ inputs.model }}
-          use_github_token: true
+         # use_github_token: true
           # Обязательный prompt: у запуска по расписанию нет комментария/треда,
           # инструкции агенту задаются только здесь.
           prompt: |
