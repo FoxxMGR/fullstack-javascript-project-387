@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.14](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.13...v0.3.14) (2026-09-12)
+
+### Bug Fixes
+
+* **ci:** чиним .github/workflows/night-check.yml добавил mkdir -p ./lighthouse ([892f6f2](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/892f6f25843ccb2144536987cc75b3bafb57f071))
+
 ## [0.3.13](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.12...v0.3.13) (2026-09-11)
 
 ### Bug Fixes
