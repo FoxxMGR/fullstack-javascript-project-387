@@ -64,6 +64,7 @@ jobs:
 
       - name: Run Lighthouse
         run: |
+          mkdir -p ./lighthouse 
           npx --yes lighthouse@latest "$APP_URL" \
             --quiet \
             --chrome-flags="--headless --no-sandbox --disable-gpu" \
