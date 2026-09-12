@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.15](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.14...v0.3.15) (2026-09-12)
+
+### Bug Fixes
+
+* **ci:** чиним .github/workflows/night-check.yml bpvtybkb модель на opencode/mimo-v2.5-free ([2ed81d0](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/2ed81d0c84b4f127221fcce871767440199b8da6))
+
 ## [0.3.14](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.13...v0.3.14) (2026-09-12)
 
 ### Bug Fixes
