@@ -7,11 +7,13 @@
 #
 # Провайдер: OpenCode Zen (https://opencode.ai/zen). Требуется секрет
 # OPENCODE_API_KEY (Settings -> Secrets and variables -> Actions).
-# Модель — бесплатная (free): opencode/ling-3.0-flash-fin-free.
+# Модель — бесплатная (free): opencode/mimo-v2.5-free.
 #
-# Ответы публикуются от github-actions[bot] через стандартный GITHUB_TOKEN
-# (use_github_token: true — документированный режим без токена установки
-# OpenCode App: у текущей установки App нет прав записи).
+# Аутентификация — OIDC: action обменивает id-token запуска на токен установки
+# OpenCode App (про App: https://opencode.ai/docs/github/). Режим
+# use_github_token здесь выключен — он нужен там, где прав App не хватает
+# (пример — auto-review.yml). Токеном App action сам настраивает git-remote
+# агента, поэтому push и создание PR работают без отдельного шага.
 #
 # Против петелей: события от ботов отсекаются (comment.user.type != Bot),
 # команда вызова задана узко через mentions (/oc, /opencode). Дополнительно
@@ -51,64 +53,52 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      # Агент делает коммиты в ветках (например, по "/oc fix this"). Без
-      # identity в раннере `git commit` падает с "Author identity unknown".
-      # - name: Configure git identity
-      #   run: |
-      #     git config user.name "github-actions[bot]"
-      #     git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      # Идентичность коммитов и credentials для push action настраивает сам
+      # (configureGit) токеном App — отдельные шаги не нужны. Поэтому checkout
+      # ниже идёт с persist-credentials: false: свой токен action подставит сам.
 
-      # Чтобы `git push` агента не падал с "could not read Username for
-      # https://github.com", переписываем remote на токенную форму и включаем
-      # credential helper. GITHUB_TOKEN маскируется GitHub в логах, в вывод не
-      # попадает.
-      # - name: Prepare authenticated remote for agent pushes
-      #   run: |
-      #     git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-      #     git config --global credential.helper cache
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Правила для агента — единый источник `.github/agent-prompt.md`
+      # (читаем из default-ветки). Правишь файл один раз — правило действует
+      # сразу на всех issues/PR, напоминать агенту в комментариях не нужно.
+      # Если файла ещё нет в default-ветке, воркфлоу не падает: шаг только
+      # предупреждает, а в промпте остаётся короткая задача ниже.
+      - name: Load shared agent rules
+        id: rules
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            let rules = ''
+            try {
+              const res = await github.rest.repos.getContent({
+                owner, repo, path: '.github/agent-prompt.md',
+                ref: context.payload.repository.default_branch,
+              })
+              rules = Buffer.from(res.data.content, 'base64').toString('utf8')
+              core.info(`Правила загружены: ${rules.length} символов`)
+            } catch (error) {
+              core.warning(`Не удалось прочитать .github/agent-prompt.md: ${error.message}`)
+            }
+            core.setOutput('rules', rules)
 
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/mimo-v2.5-free
-          # use_github_token: true
           # Промпт ниже — правила на КАЖДЫЙ запуск по /oc. Без него агент
-          # открывает PR, не проходящий CI (см. PR #5, #7, #9).
+          # открывает PR, не проходящий CI (см. PR #5, #7, #9, #11).
           prompt: |
-            Ты агент-разработчик этого репозитория. Обязательно следуй
-            AGENTS.md (раздел «Definition of Done») и CONTRIBUTING.md.
+            ${{ steps.rules.outputs.rules }}
 
-            Перед тем как коммитить или открывать PR:
-            1. Прочитай AGENTS.md, CONTRIBUTING.md, e2e/README.md.
-            2. Проверь открытые issues и PR на дубли: если фича уже
-               реализована или почти готова в открытом PR — не пиши новую
-               реализацию с нуля, а дополни существующую.
-            3. Если меняешь поведение API — сначала контракт
-               api-spec/main.tsp, затем сервер, затем тесты.
+            ---
 
-            Требования к коммитам (иначе CI commitlint красный):
-            - Каждый коммит — Conventional Commits: <type>(<scope>): <subject>.
-              type из: feat, fix, perf, docs, refactor, test, ci, chore,
-              style, build, revert. scope — например web/server/e2e/api-spec/ci.
-            - subject с маленькой буквы, без точки в конце;
-              заголовок ≤ 100 символов; строки body ≤ 100 символов.
-            - Перед пушем проверь: npx commitlint --from <sha-base> --to HEAD
-              --verbose. Доводи до 0 проблем, только потом пуш.
+            ## Твоя задача в этом запуске
 
-            Требования к PR (иначе CI e2e красный):
-            - Если меняешь фронтенд/разметку/шаги UI/тексты/селекторы —
-              ОБЯЗАТЕЛЬНО адаптируй e2e-тесты (e2e/tests/*.spec.ts) в этом
-              же PR и прогони набор локально: cd e2e && npx playwright test.
-              Красные e2e на CI недопустимы.
-            - Проверь типы: npm --prefix server run check и
-              npm --prefix web run lint.
-            - Держи diff чистым: без отчётов, логов, артефактов, dist/,
-              сгенерированных файлов.
-            - Название PR повторяет subject главного коммита.
+            Выполни запрос из комментария автора настолько, насколько он
+            сформулирован; если это вопрос — ответь объяснением без коммитов.
+            Работай строго по правилам выше (Definition of Done, коммиты,
+            e2e, детерминированность, отсутствие дублей).
           mentions: '/oc, /opencode'
           share: false

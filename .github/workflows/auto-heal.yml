@@ -1,0 +1,261 @@
+# Автолечение упавших проверок: агент сам доводит свой PR до зелёного.
+# Документация action: https://opencode.ai/docs/github/
+#
+# Зачем: PR агента регулярно приходит с красным CI (commitlint, e2e), и человеку
+# приходится вручную писать «/oc починить». Этот воркфлоу замыкает петлю:
+#
+#   e2e/commitlint/hexlet-check упал на PR агента
+#     -> job plan (workflow_run) находит PR, оставляет комментарий и запускает
+#        этот же воркфлоу через workflow_dispatch;
+#     -> job heal запускает агента в ветке PR, он чинит причину, проверяет
+#        локально и пушит обратно в ту же ветку;
+#     -> новый push запускает CI заново (агент пушит App-токеном OpenCode, а
+#        не GITHUB_TOKEN, поэтому события push создают прогоны).
+#
+# Почему через workflow_dispatch, а не сразу действием агента:
+# у action поддерживаются события issue_comment, pull_request_review_comment,
+# issues, pull_request, schedule, workflow_dispatch — события workflow_run в
+# списке нет. При этом workflow_dispatch — единственное событие, которое
+# запуск под GITHUB_TOKEN может триггерить (комментарий, оставленный
+# GITHUB_TOKEN, новых прогонов не создаёт). Схема dispatch -> агент работает
+# без PAT и без новых секретов.
+#
+# Защита от петель и от «бесконечного лечения»:
+#   * один и тот же коммит лечится один раз (маркер `<!-- auto-heal:<sha> -->`
+#     в комментарии PR);
+#   * максимум 3 попытки на PR, дальше — комментарий «нужен человек»;
+#   * concurrency сериализует plan-задания одной ветки (e2e и commitlint
+#     завершаются почти одновременно — лечим один раз, а не два);
+#   * лечатся только PR агента (ветка `opencode/*` или автор-бот).
+#
+# Права: plan — чтение + dispatch + комментарий; heal — запись (коммиты, push)
+# + id-token для обмена на App-токен OpenCode. Комментарии, созданные
+# GITHUB_TOKEN, новых прогонов не создают, поэтому петли «комментарий ->
+# opencode.yml» здесь невозможны.
+
+name: auto-heal
+
+on:
+  workflow_run:
+    workflows: [e2e, commitlint, hexlet-check]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Номер PR агента, который лечим
+        required: true
+        type: string
+      branch:
+        description: Ветка PR, в которой работает агент
+        required: true
+        type: string
+      reason:
+        description: Какие проверки упали
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auto-heal-${{ github.event.inputs.branch || github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  # Решение: лечить ли упавший прогон, и запуск лечения.
+  plan:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Decide whether to heal
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const MAX_HEALS = 3
+            const MARKER = '<!-- auto-heal:'
+            const { owner, repo } = context.repo
+            const run = context.payload.workflow_run
+            const branch = run.head_branch
+            const sha = run.head_sha
+            const defaultBranch = context.payload.repository.default_branch
+            core.info(`${run.name} упал на ветке ${branch} (${sha})`)
+
+            // 1. Открытый PR этой ветки: лечить есть что только при наличии PR.
+            const prs = await github.rest.pulls.list({
+              owner, repo, state: 'open', head: `${owner}:${branch}`, per_page: 10,
+            })
+            const pr = prs.data[0]
+            if (!pr) {
+              core.notice(`Открытого PR для ветки ${branch} нет — самолечение не нужно`)
+              return
+            }
+
+            // 2. Самолечим только PR агента: человеку чинит человек.
+            if (!branch.startsWith('opencode/') && !pr.user.login.endsWith('[bot]')) {
+              core.notice(`PR #${pr.number} не агентский — самолечение пропущено`)
+              return
+            }
+
+            // 3. Не лечим один коммит дважды и держим лимит попыток.
+            const comments = await github.rest.issues.listComments({
+              owner, repo, issue_number: pr.number, per_page: 100,
+            })
+            const marks = comments.data.filter((c) => c.body && c.body.includes(MARKER))
+            if (marks.some((c) => c.body.includes(`${MARKER}${sha} `))) {
+              core.notice(`Для коммита ${sha} лечение уже запускалось`)
+              return
+            }
+            if (marks.length >= MAX_HEALS) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: pr.number,
+                body: [
+                  `Автолечение: исчерпаны ${MAX_HEALS} попытки, проверки всё ещё красные.`,
+                  '',
+                  `Нужен человек: посмотрите \`${run.name}\` — ${run.html_url}`,
+                ].join('\n'),
+              })
+              core.notice('Лимит попыток исчерпан — нужен человек')
+              return
+            }
+
+            // 4. Что именно упало — агенту полезнее имена job, чем URL.
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner, repo, run_id: run.id, per_page: 100,
+            })
+            const failed = jobs.data.jobs
+              .filter((j) => j.conclusion === 'failure')
+              .map((j) => j.name)
+            const reason = [
+              `workflow: ${run.name}`,
+              `упавшие job: ${failed.length ? failed.join(', ') : 'не определены'}`,
+              `прогон: ${run.html_url}`,
+              `коммит: ${sha}`,
+            ].join('\n')
+
+            // 5. Запуск лечения. ref = default-ветка: файл воркфлоу читается
+            //    оттуда, а ветку PR job heal получает входным параметром.
+            await github.rest.actions.createWorkflowDispatch({
+              owner, repo, workflow_id: 'auto-heal.yml',
+              ref: defaultBranch,
+              inputs: { pr: String(pr.number), branch, reason },
+            })
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: pr.number,
+              body: [
+                `${MARKER}${sha} -->`,
+                `Автолечение: проверки упали — запускаю агента в ветке \`${branch}\``,
+                `(попытка ${marks.length + 1} из ${MAX_HEALS}).`,
+                '',
+                '```',
+                reason,
+                '```',
+              ].join('\n'),
+            })
+            core.info(`Самолечение PR #${pr.number} запущено`)
+
+  # Лечение: агент работает в ветке PR и пушит исправление туда же.
+  heal:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+    steps:
+      # Правила берём из default-ветки: ветка PR может быть старой и файла в
+      # ней ещё нет. Так правила всегда актуальные и одинаковые для всех.
+      - name: Load shared agent rules
+        id: rules
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            let rules = ''
+            try {
+              const res = await github.rest.repos.getContent({
+                owner, repo, path: '.github/agent-prompt.md',
+                ref: context.payload.repository.default_branch,
+              })
+              rules = Buffer.from(res.data.content, 'base64').toString('utf8')
+              core.info(`Правила загружены: ${rules.length} символов`)
+            } catch (error) {
+              core.warning(`Не удалось прочитать .github/agent-prompt.md: ${error.message}`)
+            }
+            core.setOutput('rules', rules)
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Record branch head
+        id: before
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Heal with OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/mimo-v2.5-free
+          mentions: '/oc, /opencode'
+          share: false
+          prompt: |
+            ${{ steps.rules.outputs.rules }}
+
+            ## Задача этого запуска: автолечение PR #${{ inputs.pr }}
+
+            Тебя запустил воркфлоу `auto-heal` — человека рядом нет, довести
+            PR #${{ inputs.pr }} до зелёных проверок должен ты сам.
+
+            Что упало:
+            ${{ inputs.reason }}
+
+            Порядок работы:
+
+            1. Сейчас ты на служебной ветке `opencode/dispatch-*`. Вернись на
+               ветку PR: `git fetch origin ${{ inputs.branch }}` и
+               `git checkout ${{ inputs.branch }}`. Это обязательно: пока ты
+               на служебной ветке, action создаст лишний PR вместо правки
+               нужного. Ветку PR не переименовывай и не удаляй.
+            2. Воспроизведи падение локально той же командой, что в CI:
+               `cd e2e && npm ci && npx playwright install --with-deps chromium
+               && npx playwright test`. Если упал `commitlint` — проверь
+               сообщения коммитов `npx commitlint --from "<base>" --to HEAD
+               --verbose` и перепиши их по Conventional Commits.
+            3. Исправь причину, а не симптом. Самый частый случай —
+               недетерминированный тест: бронь в дне, где остался один слот
+               (конец рабочего дня), из-за чего день исчезает из выбора.
+               Сделай тест детерминированным (правило 3 в Definition of Done).
+               Ослаблять проверки и удалять тесты запрещено.
+            4. Прогони проверки до зелёного локально: e2e,
+               `npm --prefix server run check`, `npm --prefix web run lint`.
+            5. Закоммить по Conventional Commits и запушь только в ветку PR:
+               `git push origin HEAD:${{ inputs.branch }}`.
+               Новую ветку и новый PR не создавай.
+            6. Если починить нельзя без решения человека — ничего не пушь:
+               напиши в конце ответа точный диагноз и вопрос (ответ попадёт
+               в лог прогона), ветку и PR оставь как есть.
+
+      # Наблюдаемость: если после лечения ветка PR не сдвинулась, значит
+      # агент не запушил (например, не смог починить сам) — это видно в логе
+      # как warning, и следующий шаг по-прежнему за человеком.
+      - name: Verify the PR branch moved
+        if: always()
+        run: |
+          before='${{ steps.before.outputs.sha }}'
+          after=$(git fetch origin '${{ inputs.branch }}' >/dev/null 2>&1 && git rev-parse FETCH_HEAD || echo "$before")
+          if [ "$after" = "$before" ]; then
+            echo "::warning::Автолечение не добавило коммит в ветку ${{ inputs.branch }} — PR #${{ inputs.pr }} всё ещё красный, нужен человек"
+          else
+            echo "Ветка ${{ inputs.branch }} обновлена: $before -> $after"
+          fi
