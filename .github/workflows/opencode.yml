@@ -77,5 +77,38 @@ jobs:
         with:
           model: opencode/mimo-v2.5-free
           # use_github_token: true
+          # Промпт ниже — правила на КАЖДЫЙ запуск по /oc. Без него агент
+          # открывает PR, не проходящий CI (см. PR #5, #7, #9).
+          prompt: |
+            Ты агент-разработчик этого репозитория. Обязательно следуй
+            AGENTS.md (раздел «Definition of Done») и CONTRIBUTING.md.
+
+            Перед тем как коммитить или открывать PR:
+            1. Прочитай AGENTS.md, CONTRIBUTING.md, e2e/README.md.
+            2. Проверь открытые issues и PR на дубли: если фича уже
+               реализована или почти готова в открытом PR — не пиши новую
+               реализацию с нуля, а дополни существующую.
+            3. Если меняешь поведение API — сначала контракт
+               api-spec/main.tsp, затем сервер, затем тесты.
+
+            Требования к коммитам (иначе CI commitlint красный):
+            - Каждый коммит — Conventional Commits: <type>(<scope>): <subject>.
+              type из: feat, fix, perf, docs, refactor, test, ci, chore,
+              style, build, revert. scope — например web/server/e2e/api-spec/ci.
+            - subject с маленькой буквы, без точки в конце;
+              заголовок ≤ 100 символов; строки body ≤ 100 символов.
+            - Перед пушем проверь: npx commitlint --from <sha-base> --to HEAD
+              --verbose. Доводи до 0 проблем, только потом пуш.
+
+            Требования к PR (иначе CI e2e красный):
+            - Если меняешь фронтенд/разметку/шаги UI/тексты/селекторы —
+              ОБЯЗАТЕЛЬНО адаптируй e2e-тесты (e2e/tests/*.spec.ts) в этом
+              же PR и прогони набор локально: cd e2e && npx playwright test.
+              Красные e2e на CI недопустимы.
+            - Проверь типы: npm --prefix server run check и
+              npm --prefix web run lint.
+            - Держи diff чистым: без отчётов, логов, артефактов, dist/,
+              сгенерированных файлов.
+            - Название PR повторяет subject главного коммита.
           mentions: '/oc, /opencode'
           share: false
