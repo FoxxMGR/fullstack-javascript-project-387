@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.16](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.15...v0.3.16) (2026-09-14)
+
+### Bug Fixes
+
+* **ci:** починить модель OpenCode в night-check по расписанию ([8794a4a](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/8794a4a7b8c98a27aedede1fd398b2068268c4d9))
+
 ## [0.3.15](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.14...v0.3.15) (2026-09-12)
 
 ### Bug Fixes
