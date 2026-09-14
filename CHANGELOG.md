@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.16...v0.4.0) (2026-09-14)
+
+### Features
+
+* **web:** datepicker с календарём и таймлайном слотов ([d8d9958](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/d8d995824523522df2547cc02bbb0f207cadc923))
+
+### Bug Fixes
+
+* **web:** добавить robots.txt для индексации ([e51056e](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/e51056e5d9ba1026699e33747c7f64c55d46c1ec))
+
 ## [0.3.16](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.15...v0.3.16) (2026-09-14)
 
 ### Bug Fixes
