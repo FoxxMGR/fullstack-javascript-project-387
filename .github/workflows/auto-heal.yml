@@ -189,7 +189,6 @@ jobs:
               core.warning(`Не удалось прочитать .github/agent-prompt.md: ${error.message}`)
             }
             core.setOutput('rules', rules)
-
       - name: Checkout PR branch
         uses: actions/checkout@v6
         with:

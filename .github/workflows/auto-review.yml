@@ -50,6 +50,27 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      # Правила для агента — единый источник `.github/agent-prompt.md`
+      # (читаем из default-ветки), чтобы критерии ревью не расходились с
+      # правилами opencode/auto-heal. Если файла ещё нет — не падаем.
+      - name: Load shared agent rules
+        id: rules
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            let rules = ''
+            try {
+              const res = await github.rest.repos.getContent({
+                owner, repo, path: '.github/agent-prompt.md',
+                ref: context.payload.repository.default_branch,
+              })
+              rules = Buffer.from(res.data.content, 'base64').toString('utf8')
+            } catch (error) {
+              core.warning(`Не удалось прочитать .github/agent-prompt.md: ${error.message}`)
+            }
+            core.setOutput('rules', rules)
+
       - name: Auto-review with OpenCode
         uses: anomalyco/opencode/github@latest
         env:
@@ -62,10 +83,13 @@ jobs:
           # ошибкам. Разворачивать в отдельный PR/issue не нужно — только
           # замечания в обсуждении.
           prompt: |
+            ${{ steps.rules.outputs.rules }}
+
+            ---
+
             Проведи ревью этого pull request как строгий senior-разработчик.
             Это автоматический «первый проход» перед ручным ревью человеком.
-            Полные правила репозитория для агента — в `.github/agent-prompt.md`
-            (единый источник для opencode/auto-review/auto-heal), сверяйся с ним.
+            Сверяйся с правилами выше (единый источник — `.github/agent-prompt.md`).
 
             Оцени:
             1. Стиль и соответствие кодовой базе (идиомы, именование).
