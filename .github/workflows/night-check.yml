@@ -111,7 +111,9 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: ${{ inputs.model }}
+          # Для schedule-событий объект `inputs` пуст (дефолты workflow_dispatch
+          # к нему не применяются) — модель по расписанию берётся из fallback.
+          model: ${{ inputs.model || 'opencode/mimo-v2.5-free' }}
          # use_github_token: true
           # Обязательный prompt: у запуска по расписанию нет комментария/треда,
           # инструкции агенту задаются только здесь.
