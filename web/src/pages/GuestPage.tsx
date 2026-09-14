@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { guestApi, ApiError } from '../api/client';
 import type { CreateBookingRequest, EventType, TimeSlot } from '../api/types';
-import { formatDateTime, formatTime, inTwoWeeksISO, todayISO } from '../lib/format';
+import { formatDateTime, formatTime } from '../lib/format';
+import DatePicker from '../components/DatePicker';
 
 type Step = 'types' | 'slots' | 'form' | 'done';
 
@@ -12,7 +13,6 @@ export default function GuestPage() {
 
   const [step, setStep] = useState<Step>('types');
   const [selectedType, setSelectedType] = useState<EventType | null>(null);
-  const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
   // Поля формы бронирования.
@@ -37,22 +37,13 @@ export default function GuestPage() {
     void loadTypes();
   }, [loadTypes]);
 
-  const selectType = async (type: EventType) => {
+  const selectType = (type: EventType) => {
     setSelectedType(type);
     setStep('slots');
-    setSlots([]);
     setError(null);
-    try {
-      setSlots(await guestApi.getAvailableSlots(type.id, todayISO(), inTwoWeeksISO()));
-    } catch (e) {
-      setSelectedType(null);
-      setStep('types');
-      setError(e instanceof ApiError ? e.message : 'Не удалось загрузить слоты');
-    }
   };
 
   const pickSlot = (slot: TimeSlot) => {
-    if (!slot.isAvailable) return;
     setSelectedSlot(slot);
     setStep('form');
   };
@@ -79,7 +70,6 @@ export default function GuestPage() {
     setStep('types');
     setSelectedType(null);
     setSelectedSlot(null);
-    setSlots([]);
     setGuestName('');
     setGuestEmail('');
     setBooking(null);
@@ -130,7 +120,7 @@ export default function GuestPage() {
         </>
       )}
 
-      {/* Шаг 2: свободные слоты */}
+      {/* Шаг 2: выбор даты и времени */}
       {step === 'slots' && selectedType && (
         <>
           <div className="row" style={{ marginBottom: 12 }}>
@@ -139,29 +129,11 @@ export default function GuestPage() {
             </button>
             <h3 style={{ margin: 0 }}>{selectedType.title}</h3>
           </div>
-          {slots.length === 0 ? (
-            <div className="empty">Свободных слотов в ближайшие 14 дней нет.</div>
-          ) : (
-            <>
-              <p className="muted">Выберите свободный слот (окно 14 дней):</p>
-              <div className="grid grid-2">
-                {slots
-                  .filter((s) => s.isAvailable)
-                  .map((s) => (
-                    <button
-                      key={s.startTime}
-                      className="btn"
-                      style={{ textAlign: 'left', padding: '12px' }}
-                      onClick={() => pickSlot(s)}
-                    >
-                      <div>
-                        {formatDateTime(s.startTime)} — {formatTime(s.endTime)}
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            </>
-          )}
+          <DatePicker
+            eventTypeId={selectedType.id}
+            durationMinutes={selectedType.durationMinutes}
+            onSlotSelected={pickSlot}
+          />
         </>
       )}
 
