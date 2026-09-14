@@ -26,9 +26,20 @@ async function waitForSlots(
   const availableDays = page.locator('.datepicker .dp-grid button.dp-cell.dp-available');
   let day = availableDays.first();
   if (dayNumber) {
+    // Повторный вход после брони: возвращаемся к тому же дню.
     day = availableDays.filter({
       has: page.locator('span.dp-day', { hasText: new RegExp(`^${dayNumber}$`) }),
     });
+  } else {
+    // Первый вход: выбираем день минимум с двумя слотами. Если бронировать
+    // единственный оставшийся слот дня (например, 17:30 в конце рабочего дня),
+    // день полностью исчезнет из выбора и повторный вход по dayNumber упадёт.
+    const multiSlot = availableDays.filter({
+      has: page.locator('span.dp-count', { hasText: /^([2-9]|1[0-9])$/ }),
+    });
+    if ((await multiSlot.count()) > 0) {
+      day = multiSlot.first();
+    }
   }
   await expect(day).toBeVisible();
   const selectedDay = dayNumber ?? (await day.locator('span.dp-day').innerText());
