@@ -200,6 +200,7 @@ th {
 /* DatePicker */
 .datepicker {
   margin-top: 8px;
+  position: relative;
 }
 
 .dp-header {
@@ -344,4 +345,47 @@ th {
 
 .dp-slot:hover .dp-slot-sep {
   color: #bfdbfe;
+}
+
+/* Day hover tooltip */
+.dp-tooltip {
+  position: absolute;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #e4e7eb;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 10px 14px;
+  z-index: 100;
+  min-width: 160px;
+  max-width: 240px;
+  pointer-events: none;
+}
+
+.dp-tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2933;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dp-tooltip-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.dp-tooltip-slot {
+  font-size: 13px;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.dp-tooltip-empty {
+  font-size: 13px;
+  color: #9ca3af;
 }
