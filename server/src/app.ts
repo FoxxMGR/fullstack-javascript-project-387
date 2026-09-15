@@ -190,7 +190,7 @@ function createBooking(ctx: RouteContext, st: Store): void {
     throw new ApiError(
       400,
       'INVALID_START_TIME',
-      'Выбранное время не входит в сетку рабочих слотов (Пн–Пт 09:00–18:00)',
+      'Выбранное время не входит в сетку рабочих слотов (Пн–Пт 09:00–18:00, кроме праздников)',
       { field: 'startTime' },
     );
   }
