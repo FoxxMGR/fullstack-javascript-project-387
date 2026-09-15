@@ -223,7 +223,7 @@ th {
 
 .dp-weekday {
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: #6b7280;
   padding: 8px 0;
@@ -237,7 +237,7 @@ th {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #fff;
   cursor: pointer;
@@ -264,12 +264,12 @@ th {
 }
 
 .dp-today {
-  border-color: #2563eb;
+  border: 2px solid #2563eb;
   font-weight: 700;
 }
 
 .dp-available {
-  background: #f0fdf4;
+  background: #ecfdf5;
 }
 
 .dp-available:hover {
@@ -278,7 +278,8 @@ th {
 }
 
 .dp-day {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
   line-height: 1;
 }
 
