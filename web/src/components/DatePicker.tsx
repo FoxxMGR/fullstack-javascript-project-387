@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { guestApi, ApiError } from '../api/client';
 import type { TimeSlot } from '../api/types';
 import { formatTime } from '../lib/format';
@@ -60,6 +60,9 @@ export default function DatePicker({
   const [allSlots, setAllSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
+  const datepickerRef = useRef<HTMLDivElement>(null);
 
   const loadSlots = useCallback(async (month: Date) => {
     setLoading(true);
@@ -132,6 +135,24 @@ export default function DatePicker({
     setSelectedDate(null);
   };
 
+  const handleDayMouseEnter = (d: Date, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isPast(d) || isWeekend(d) || availableCount(d) === 0) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const container = datepickerRef.current?.getBoundingClientRect();
+    if (container) {
+      setHoverPos({
+        x: rect.left - container.left + rect.width / 2,
+        y: rect.bottom - container.top + 8,
+      });
+    }
+    setHoveredDate(d);
+  };
+
+  const handleDayMouseLeave = () => {
+    setHoveredDate(null);
+    setHoverPos(null);
+  };
+
   const renderMonthly = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -179,6 +200,8 @@ export default function DatePicker({
                 className={`dp-cell${isToday ? ' dp-today' : ''}${disabled ? ' dp-disabled' : ''}${count > 0 && !disabled ? ' dp-available' : ''}`}
                 disabled={disabled}
                 onClick={() => handleDayClick(d)}
+                onMouseEnter={(e) => handleDayMouseEnter(d, e)}
+                onMouseLeave={handleDayMouseLeave}
               >
                 <span className="dp-day">{d.getDate()}</span>
                 {count > 0 && !disabled && (
@@ -188,6 +211,33 @@ export default function DatePicker({
             );
           })}
         </div>
+        {hoveredDate && hoverPos && (
+          <div
+            className="dp-tooltip"
+            style={{ left: hoverPos.x, top: hoverPos.y }}
+          >
+            <div className="dp-tooltip-title">
+              {hoveredDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+            </div>
+            {(() => {
+              const key = toDateKey(hoveredDate);
+              const slots = slotsByDate.get(key) ?? [];
+              const available = slots.filter((s) => s.isAvailable);
+              if (available.length === 0) {
+                return <div className="dp-tooltip-empty">Нет свободных слотов</div>;
+              }
+              return (
+                <div className="dp-tooltip-slots">
+                  {available.map((slot) => (
+                    <div key={slot.startTime} className="dp-tooltip-slot">
+                      {formatTime(slot.startTime)} — {formatTime(slot.endTime)}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
         {loading && <div className="dp-loading">Загрузка…</div>}
       </div>
     );
@@ -234,7 +284,7 @@ export default function DatePicker({
   };
 
   return (
-    <div className="datepicker">
+    <div className="datepicker" ref={datepickerRef}>
       {viewMode === 'monthly' ? renderMonthly() : renderDaily()}
       {error && <div className="err" style={{ marginTop: 12 }}>{error}</div>}
     </div>
