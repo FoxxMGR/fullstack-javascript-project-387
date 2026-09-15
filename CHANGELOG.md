@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.4.0...v0.4.1) (2026-09-15)
+
+### Bug Fixes
+
+* **server:** исключить нерабочие праздничные дни из слотов ([7d12525](https://github.com/FoxxMGR/fullstack-javascript-project-387/commit/7d1252590981753756a32abb7b527ed8753f7cae)), closes [#10](https://github.com/FoxxMGR/fullstack-javascript-project-387/issues/10)
+
 ## [0.4.0](https://github.com/FoxxMGR/fullstack-javascript-project-387/compare/v0.3.16...v0.4.0) (2026-09-14)
 
 ### Features
